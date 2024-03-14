@@ -20,7 +20,7 @@ Instant thresholdTime = currentTime.minus(ageThreshold, ChronoUnit.MINUTES)
 long thresholdTimeInSeconds = thresholdTime.getEpochSecond()
 
 // Construct the command
-String command = "find ${directoryPath} -type f -newermt '@${thresholdTimeInSeconds}' -delete"
+String command = "find ${directoryPath} -type f -newermt \"$(date -r ${thresholdTimeInSeconds} +'%Y%m%d%H%M.%S')\" -delete"
 
 // Create a ProcessBuilder instance
 def processBuilder = new ProcessBuilder(command.split(" "))
@@ -28,22 +28,4 @@ def processBuilder = new ProcessBuilder(command.split(" "))
 // Start the process
 Process process = processBuilder.start()
 
-// Get the output streams
-InputStream inputStream = process.getInputStream()
-InputStream errorStream = process.getErrorStream()
-
-// Read and print the output
-inputStream.eachLine { line ->
-    println line
-}
-
-// Read and print the error stream (if any)
-errorStream.eachLine { line ->
-    println "Error: $line"
-}
-
-// Wait for the process to complete
-int exitCode = process.waitFor()
-
-// Print the exit code
-println "Exit code: $exitCode"
+// ... (Rest of the code remains the same)
