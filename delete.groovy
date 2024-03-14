@@ -16,8 +16,11 @@ Instant currentTime = Instant.now()
 // Calculate the threshold time
 Instant thresholdTime = currentTime.minus(ageThreshold, ChronoUnit.MINUTES)
 
+// Convert the threshold time to Unix epoch time
+long thresholdTimeInSeconds = thresholdTime.getEpochSecond()
+
 // Construct the command
-String command = "find ${directoryPath} -type f -newermt '${thresholdTime.toString()}' -delete"
+String command = "find ${directoryPath} -type f -newermt '@${thresholdTimeInSeconds}' -delete"
 
 // Create a ProcessBuilder instance
 def processBuilder = new ProcessBuilder(command.split(" "))
