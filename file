@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Loop through each directory
+for dir in "${cleanup_temp_locations[@]}"; do
+
+    if [ -d "$dir" ]; then
+
+        old_files=$(find "$dir" -type f -mtime +7 2>/dev/null)
+
+
+        if [ -n "$old_files" ]; then
+            printf "Files older than 7 days in %s:\n%s\n" "$dir" "$old_files"
+        fi
+    fi
+done
+
+
+if [ -z "$old_files" ]; then
+    echo "No files older than 7 days found in the specified directories."
+fi
