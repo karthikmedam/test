@@ -1,7 +1,7 @@
 from confluent_kafka import Consumer, KafkaError
-from confluent_kafka.avro import AvroConsumer
-from confluent_kafka.avro.serializer import SerializerError
 from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroDeserializer
+from confluent_kafka.serialization import SerializationContext, MessageField
 
 class GenericKafkaConsumer:
     def __init__(self, bootstrap_server, consumer_group_id, topic_name, schema_registry_url=None):
@@ -17,20 +17,21 @@ class GenericKafkaConsumer:
             'auto.offset.reset': 'earliest'  # Start from the earliest message
         }
 
-        # Initialize schema registry if provided
+        # Initialize schema registry and deserializer if provided
         if self.schema_registry_url:
             self.schema_registry = SchemaRegistryClient({'url': self.schema_registry_url})
-            self.consumer = AvroConsumer(self.consumer_conf, schema_registry=self.schema_registry)
+            self.avro_deserializer = AvroDeserializer(self.schema_registry)
         else:
-            self.consumer = Consumer(self.consumer_conf)
+            self.schema_registry = None
+            self.avro_deserializer = None
 
+        self.consumer = Consumer(self.consumer_conf)
         self.consumer.subscribe([self.topic_name])
 
     def retrieve_schema_info(self):
         if not self.schema_registry_url:
             print("Schema registry URL is not provided.")
             return None
-
         # Assuming the topic uses a specific subject name for schema
         subject = f"{self.topic_name}-value"
         schema = self.schema_registry.get_latest_version(subject)
@@ -40,7 +41,6 @@ class GenericKafkaConsumer:
         try:
             while True:
                 msg = self.consumer.poll(1.0)  # Poll messages with a timeout of 1 second
-
                 if msg is None:
                     continue
                 if msg.error():
@@ -50,11 +50,17 @@ class GenericKafkaConsumer:
                         print(f"Error occurred: {msg.error().str()}")
                     continue
 
-                # Print the message value
-                print(f"Consumed message: {msg.value().decode('utf-8')}")
+                # Deserialize the message if Avro is used
+                if self.avro_deserializer:
+                    try:
+                        deserialized_value = self.avro_deserializer(msg.value(), SerializationContext(msg.topic(), MessageField.VALUE))
+                        print(f"Consumed message: {deserialized_value}")
+                    except Exception as e:
+                        print(f"Message deserialization failed: {e}")
+                else:
+                    # Print the message value as before if not using Avro
+                    print(f"Consumed message: {msg.value().decode('utf-8')}")
 
-        except SerializerError as e:
-            print(f"Message deserialization failed for {msg}: {e}")
         finally:
             self.consumer.close()
 
