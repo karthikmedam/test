@@ -38,9 +38,10 @@ admin_client = admin.AdminClient(admin_conf)
 # Create Schema Registry client
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-# Register the schema in the Schema Registry
-avro_serializer = AvroSerializer(schema_registry_client, schema_str=json.dumps(message_schema))
-schema_id = avro_serializer.register_schema('message-value', json.dumps(message_schema))
+schema_id = schema_registry_client.register_schema('message-value', 'AVRO', json.dumps(message_schema))
+
+# Create the AvroSerializer with the registered schema ID
+avro_serializer = AvroSerializer(schema_registry_client, schema_id=schema_id)
 
 # Create the Kafka topic with the registered schema
 topic_name = 'topic1'
