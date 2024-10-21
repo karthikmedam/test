@@ -1,3 +1,84 @@
+from confluent_kafka import admin
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroSerializer
+import json
+
+# Kafka Admin configuration
+admin_conf = {
+    'bootstrap.servers': 'localhost:9092',
+    'security.protocol': 'SSL',
+    'ssl.certificate.location': '/path/to/client.crt',
+    'ssl.key.location': '/path/to/client.key',
+    'ssl.ca.location': '/path/to/ca.crt'
+}
+
+# Schema Registry configuration
+schema_registry_conf = {
+    'url': 'https://localhost:8081',
+    'basic.auth.user.info': 'username:password',
+    'ssl.certificate.location': '/path/to/client.crt',
+    'ssl.key.location': '/path/to/client.key',
+    'ssl.ca.location': '/path/to/ca.crt'
+}
+
+# Sample message schema
+message_schema = {
+    "type": "record",
+    "name": "Message",
+    "fields": [
+        {"name": "id", "type": "int"},
+        {"name": "name", "type": "string"},
+        {"name": "email", "type": "string"}
+    ]
+}
+
+# Create Kafka Admin client
+admin_client = admin.AdminClient(admin_conf)
+
+# Create Schema Registry client
+schema_registry_client = SchemaRegistryClient(schema_registry_conf)
+
+# Register the schema in the Schema Registry
+avro_serializer = AvroSerializer(schema_registry_client)
+schema_id = avro_serializer.register_schema('message-value', json.dumps(message_schema))
+
+# Create the Kafka topic with the registered schema
+topic_name = 'topic1'
+num_partitions = 3
+replication_factor = 1
+
+topic_spec = admin.NewTopic(topic_name, num_partitions, replication_factor)
+topic_spec.config['confluent.value.schema.id'] = str(schema_id)
+
+admin_client.create_topics([topic_spec])
+print(f"Created topic '{topic_name}' with schema ID {schema_id}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#consume the topic
+
+
 from confluent_kafka import Consumer, KafkaError
 import json
 
